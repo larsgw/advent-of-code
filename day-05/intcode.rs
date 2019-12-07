@@ -32,15 +32,10 @@ fn get_values (tape: &Vec<i32>, pointer: i32, number: (i32, i32), modes: i32) ->
     values
 }
 
-pub fn run (intcode: &Vec<i32>, input: &Vec<i32>) -> Vec<i32> {
-    let mut tape = intcode.to_vec();
-    let mut output = Vec::new();
-    let mut input_index = 0;
-    let mut cursor = 0;
-
+pub fn step (tape: &mut Vec<i32>, input: &Vec<i32>, tape_index: &mut i32, input_index: &mut usize) -> Option<i32> {
     loop {
-        let instruction = get_value(&tape, cursor, 1);
-        cursor += 1;
+        let instruction = get_value(&tape, *tape_index, 1);
+        *tape_index += 1;
 
         let opcode = instruction % 100;
         let modes = instruction / 100;
@@ -54,8 +49,8 @@ pub fn run (intcode: &Vec<i32>, input: &Vec<i32>) -> Vec<i32> {
             99 | _ => (0, 0)
         };
 
-        let values = get_values(&tape, cursor, parameters, modes);
-        cursor += parameters.0 + parameters.1;
+        let values = get_values(&tape, *tape_index, parameters, modes);
+        *tape_index += parameters.0 + parameters.1;
 
         match opcode {
             1 => {
@@ -68,20 +63,20 @@ pub fn run (intcode: &Vec<i32>, input: &Vec<i32>) -> Vec<i32> {
             },
             3 => {
                 let target = convert_pointer(values[0]);
-                tape[target] = input[input_index];
-                input_index += 1
+                tape[target] = input[*input_index];
+                *input_index += 1
             },
             4 => {
-                output.push(values[0])
+                return Some(values[0])
             },
             5 => {
                 if values[0] != 0 {
-                    cursor = values[1]
+                    *tape_index = values[1]
                 }
             },
             6 => {
                 if values[0] == 0 {
-                    cursor = values[1]
+                    *tape_index = values[1]
                 }
             },
             7 => {
@@ -92,8 +87,24 @@ pub fn run (intcode: &Vec<i32>, input: &Vec<i32>) -> Vec<i32> {
                 let target = convert_pointer(values[2]);
                 tape[target] = (values[0] == values[1]) as i32
             },
-            99 => break,
+            99 => return None,
             _ => panic!("unkown opcode")
+        }
+    }
+}
+
+pub fn run (intcode: &Vec<i32>, input: &Vec<i32>) -> Vec<i32> {
+    let mut tape = intcode.to_vec();
+    let mut output = Vec::new();
+    let mut tape_index = 0;
+    let mut input_index = 0;
+
+    loop {
+        let step_output = step(&mut tape, input, &mut tape_index, &mut input_index);
+        if step_output.is_some() {
+            output.push(step_output.unwrap())
+        } else {
+            break
         }
     }
 
