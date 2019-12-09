@@ -1,7 +1,7 @@
 use std::fs;
 mod intcode;
 
-fn permutate (elements: Vec<i32>) -> Vec<Vec<i32>> {
+fn permutate (elements: Vec<i64>) -> Vec<Vec<i64>> {
     let mut permutations = Vec::new();
     for element in &elements {
         let mut other_elements = (&elements).to_vec();
@@ -18,7 +18,7 @@ fn permutate (elements: Vec<i32>) -> Vec<Vec<i32>> {
     permutations
 }
 
-fn calculate_output (code: &Vec<i32>, settings: &Vec<i32>) -> i32 {
+fn calculate_output (code: &Vec<i64>, settings: &Vec<i64>) -> i64 {
     let mut output = 0;
 
     for phase in settings {
@@ -28,30 +28,24 @@ fn calculate_output (code: &Vec<i32>, settings: &Vec<i32>) -> i32 {
     output
 }
 
-fn find_optimal_settings (code: &Vec<i32>) -> i32 {
+fn find_optimal_settings (code: &Vec<i64>) -> i64 {
     let possible_phases = (0..5).collect();
     let possible_settings = permutate(possible_phases);
     possible_settings.iter().map(|settings| calculate_output(code, settings)).max().unwrap()
 }
 
-struct State {
-    tape: Vec<i32>,
-    input: Vec<i32>,
-    tape_index: i32,
-    input_index: usize
-}
-
-fn calculate_feedback_loop_output (code: &Vec<i32>, settings: &Vec<i32>) -> i32 {
+fn calculate_feedback_loop_output (code: &Vec<i64>, settings: &Vec<i64>) -> i64 {
     let mut states = Vec::new();
 
     for phase_setting in settings {
         let tape = code.to_owned();
         let input = vec![*phase_setting];
-        states.push(State {
+        states.push(intcode::ProgramState {
             tape,
             input,
             tape_index: 0,
-            input_index: 0
+            input_index: 0,
+            relative_base: 0
         })
     }
 
@@ -62,12 +56,7 @@ fn calculate_feedback_loop_output (code: &Vec<i32>, settings: &Vec<i32>) -> i32 
         let state = &mut states[i];
         state.input.push(last_output);
 
-        let output = intcode::step(
-            &mut state.tape,
-            &mut state.input,
-            &mut state.tape_index,
-            &mut state.input_index
-        );
+        let output = intcode::step(state);
 
         if output.is_some() {
             last_output = output.unwrap()
@@ -79,14 +68,14 @@ fn calculate_feedback_loop_output (code: &Vec<i32>, settings: &Vec<i32>) -> i32 
     }
 }
 
-fn find_optimal_feedback_loop_settings (code: &Vec<i32>) -> i32 {
+fn find_optimal_feedback_loop_settings (code: &Vec<i64>) -> i64 {
     let possible_phases = (5..10).collect();
     let possible_settings = permutate(possible_phases);
     possible_settings.iter().map(|settings| calculate_feedback_loop_output(code, settings)).max().unwrap()
 }
 
-fn parse_number (string: &str) -> i32 {
-	string.parse::<i32>().expect("cannot parse string as int")
+fn parse_number (string: &str) -> i64 {
+	string.parse::<i64>().expect("cannot parse string as int")
 }
 
 fn main () {

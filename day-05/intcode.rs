@@ -1,4 +1,4 @@
-fn convert_pointer (pointer: i32) -> usize {
+fn convert_pointer (pointer: i64) -> usize {
     let new_pointer = if pointer >= 0 {
         Some(pointer as usize)
     } else {
@@ -14,7 +14,7 @@ fn check_tape_length (state: &mut ProgramState, index: usize) {
     }
 }
 
-fn get_value (state: &mut ProgramState, pointer: i32, mode: i32) -> i32 {
+fn get_value (state: &mut ProgramState, pointer: i64, mode: i64) -> i64 {
     let converted_pointer = convert_pointer(pointer);
     check_tape_length(state, converted_pointer);
 
@@ -27,11 +27,11 @@ fn get_value (state: &mut ProgramState, pointer: i32, mode: i32) -> i32 {
     }
 }
 
-fn get_values (state: &mut ProgramState, pointer: i32, number: (i32, i32), modes: i32) -> Vec<i32> {
+fn get_values (state: &mut ProgramState, pointer: i64, number: (i64, i64), modes: i64) -> Vec<i64> {
     let mut values = Vec::new();
 
     for i in 0..number.0 {
-        let mode = (modes / 10_i32.pow(i as u32)) % 10;
+        let mode = (modes / 10_i64.pow(i as u32)) % 10;
         values.push(get_value(state, pointer + i, mode));
     }
 
@@ -43,14 +43,14 @@ fn get_values (state: &mut ProgramState, pointer: i32, number: (i32, i32), modes
 }
 
 pub struct ProgramState {
-    tape: Vec<i32>,
-    input: Vec<i32>,
-    tape_index: i32,
-    input_index: usize,
-    relative_base: i32
+    pub tape: Vec<i64>,
+    pub input: Vec<i64>,
+    pub tape_index: i64,
+    pub input_index: usize,
+    pub relative_base: i64
 }
 
-pub fn step (state: &mut ProgramState) -> Option<i32> {
+pub fn step (state: &mut ProgramState) -> Option<i64> {
     loop {
         let instruction = get_value(state, state.tape_index, 1);
         state.tape_index += 1;
@@ -93,7 +93,6 @@ pub fn step (state: &mut ProgramState) -> Option<i32> {
                 state.input_index += 1
             },
             4 => {
-                println!("output {}", values[0]);
                 return Some(values[0])
             },
             5 => {
@@ -108,11 +107,11 @@ pub fn step (state: &mut ProgramState) -> Option<i32> {
             },
             7 => {
                 let target = convert_pointer(values[2]);
-                state.tape[target] = (values[0] < values[1]) as i32
+                state.tape[target] = (values[0] < values[1]) as i64
             },
             8 => {
                 let target = convert_pointer(values[2]);
-                state.tape[target] = (values[0] == values[1]) as i32
+                state.tape[target] = (values[0] == values[1]) as i64
             },
             9 => {
                 state.relative_base += values[0]
@@ -123,7 +122,7 @@ pub fn step (state: &mut ProgramState) -> Option<i32> {
     }
 }
 
-pub fn run (intcode: &Vec<i32>, input: &Vec<i32>) -> Vec<i32> {
+pub fn run (intcode: &Vec<i64>, input: &Vec<i64>) -> Vec<i64> {
     let mut output = Vec::new();
     let mut state = ProgramState {
         tape: intcode.to_vec(),

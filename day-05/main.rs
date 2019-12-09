@@ -1,8 +1,8 @@
 use std::fs;
 mod intcode;
 
-fn parse_number (string: &str) -> i32 {
-	string.parse::<i32>().expect("cannot parse string as int")
+fn parse_number (string: &str) -> i64 {
+	string.parse::<i64>().expect("cannot parse string as int")
 }
 
 fn main () {
