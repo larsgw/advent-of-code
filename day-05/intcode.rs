@@ -23,20 +23,36 @@ fn get_value (state: &mut ProgramState, pointer: i64, mode: i64) -> i64 {
         0 => get_value(state, immediate_value, 1),
         1 => immediate_value,
         2 => get_value(state, immediate_value + state.relative_base, 1),
-        _ => panic!("unkown parameter mode")
+        _ => panic!("unknown parameter mode")
     }
 }
 
-fn get_values (state: &mut ProgramState, pointer: i64, number: (i64, i64), modes: i64) -> Vec<i64> {
-    let mut values = Vec::new();
+fn get_pointer (state: &mut ProgramState, pointer: i64, mode: i64) -> usize {
+    let pointer_value = get_value(state, pointer, 1);
+    let absolute_pointer = match mode {
+        0 | 1 => pointer_value,
+        2 => pointer_value + state.relative_base,
+        _ => panic!("unknown pointer mode")
+    };
+    let converted_pointer = convert_pointer(absolute_pointer);
+    check_tape_length(state, converted_pointer);
+
+    converted_pointer
+}
+
+fn get_mode (modes: i64, i: i64) -> i64 {
+    (modes / 10_i64.pow(i as u32)) % 10
+}
+
+fn get_parameters (state: &mut ProgramState, pointer: i64, number: (i64, i64), modes: i64) -> (Vec<i64>, Vec<usize>) {
+    let mut values = (Vec::new(), Vec::new());
 
     for i in 0..number.0 {
-        let mode = (modes / 10_i64.pow(i as u32)) % 10;
-        values.push(get_value(state, pointer + i, mode));
+        values.0.push(get_value(state, pointer + i, get_mode(modes, i)));
     }
 
-    for i in 0..number.1 {
-        values.push(get_value(state, pointer + number.0 + i, 1));
+    for i in number.0..(number.0 + number.1) {
+        values.1.push(get_pointer(state, pointer + i, get_mode(modes, i)));
     }
 
     values
@@ -58,7 +74,7 @@ pub fn step (state: &mut ProgramState) -> Option<i64> {
         let opcode = instruction % 100;
         let modes = instruction / 100;
 
-        // (input_params, output_params)
+        // (values, pointers)
         let parameters = match opcode {
             1 | 2 => (2, 1),
             3 => (0, 1),
@@ -69,27 +85,18 @@ pub fn step (state: &mut ProgramState) -> Option<i64> {
             99 | _ => (0, 0)
         };
 
-        let values = get_values(state, state.tape_index, parameters, modes);
+        let (values, pointers) = get_parameters(state, state.tape_index, parameters, modes);
         state.tape_index += parameters.0 + parameters.1;
-
-        match parameters.1 {
-            0 => {},
-            1 => check_tape_length(state, convert_pointer(*values.last().unwrap())),
-            _ => panic!("unsupported number of output parameters")
-        };
 
         match opcode {
             1 => {
-                let target = convert_pointer(values[2]);
-                state.tape[target] = values[0] + values[1]
+                state.tape[pointers[0]] = values[0] + values[1]
             },
             2 => {
-                let target = convert_pointer(values[2]);
-                state.tape[target] = values[0] * values[1]
+                state.tape[pointers[0]] = values[0] * values[1]
             },
             3 => {
-                let target = convert_pointer(values[0]);
-                state.tape[target] = state.input[state.input_index];
+                state.tape[pointers[0]] = state.input[state.input_index];
                 state.input_index += 1
             },
             4 => {
@@ -106,12 +113,10 @@ pub fn step (state: &mut ProgramState) -> Option<i64> {
                 }
             },
             7 => {
-                let target = convert_pointer(values[2]);
-                state.tape[target] = (values[0] < values[1]) as i64
+                state.tape[pointers[0]] = (values[0] < values[1]) as i64
             },
             8 => {
-                let target = convert_pointer(values[2]);
-                state.tape[target] = (values[0] == values[1]) as i64
+                state.tape[pointers[0]] = (values[0] == values[1]) as i64
             },
             9 => {
                 state.relative_base += values[0]
