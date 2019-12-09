@@ -8,8 +8,17 @@ fn convert_pointer (pointer: i32) -> usize {
     new_pointer.expect(&format!("pointer out of bounds: {}", pointer))
 }
 
-fn get_value (state: &ProgramState, pointer: i32, mode: i32) -> i32 {
-    let immediate_value = state.tape[convert_pointer(pointer)];
+fn check_tape_length (state: &mut ProgramState, index: usize) {
+    if index >= state.tape.len() {
+        state.tape.resize(index + 1, 0);
+    }
+}
+
+fn get_value (state: &mut ProgramState, pointer: i32, mode: i32) -> i32 {
+    let converted_pointer = convert_pointer(pointer);
+    check_tape_length(state, converted_pointer);
+
+    let immediate_value = state.tape[converted_pointer];
     match mode {
         0 => get_value(state, immediate_value, 1),
         1 => immediate_value,
@@ -18,7 +27,7 @@ fn get_value (state: &ProgramState, pointer: i32, mode: i32) -> i32 {
     }
 }
 
-fn get_values (state: &ProgramState, pointer: i32, number: (i32, i32), modes: i32) -> Vec<i32> {
+fn get_values (state: &mut ProgramState, pointer: i32, number: (i32, i32), modes: i32) -> Vec<i32> {
     let mut values = Vec::new();
 
     for i in 0..number.0 {
@@ -43,7 +52,7 @@ pub struct ProgramState {
 
 pub fn step (state: &mut ProgramState) -> Option<i32> {
     loop {
-        let instruction = get_value(&state, state.tape_index, 1);
+        let instruction = get_value(state, state.tape_index, 1);
         state.tape_index += 1;
 
         let opcode = instruction % 100;
@@ -60,9 +69,14 @@ pub fn step (state: &mut ProgramState) -> Option<i32> {
             99 | _ => (0, 0)
         };
 
-        println!("{} {} {}", instruction, opcode, modes);
-        let values = get_values(&state, state.tape_index, parameters, modes);
+        let values = get_values(state, state.tape_index, parameters, modes);
         state.tape_index += parameters.0 + parameters.1;
+
+        match parameters.1 {
+            0 => {},
+            1 => check_tape_length(state, convert_pointer(*values.last().unwrap())),
+            _ => panic!("unsupported number of output parameters")
+        };
 
         match opcode {
             1 => {
@@ -79,6 +93,7 @@ pub fn step (state: &mut ProgramState) -> Option<i32> {
                 state.input_index += 1
             },
             4 => {
+                println!("output {}", values[0]);
                 return Some(values[0])
             },
             5 => {
