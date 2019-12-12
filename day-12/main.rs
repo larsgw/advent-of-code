@@ -74,7 +74,7 @@ fn main() {
     let data = file.split("\n").map(|str| Body::from(str)).collect::<Vec<Body>>();
 
     println!(
-        "star 10-1: {}",
+        "star 12-1: {}",
         calculate_energy(&data, 1000)
     )
 }
