@@ -1,3 +1,5 @@
+use std::fs;
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 struct Body {
     position: (i64, i64, i64),
@@ -23,7 +25,7 @@ impl Body {
         let kin = self.velocity.0.abs() + self.velocity.1.abs() + self.velocity.2.abs();
         (pot * kin) as u64
     }
-    
+
     fn get_velocity_diff (&self, other: &Body) -> (i64, i64, i64) {
         let x = (other.position.0 - self.position.0).signum();
         let y = (other.position.1 - self.position.1).signum();
@@ -67,11 +69,8 @@ fn calculate_energy (bodies: &Vec<Body>, n_steps: u64) -> u64 {
 }
 
 fn main() {
-    let file = "<x=-1, y=-4, z=0>
-<x=4, y=7, z=-1>
-<x=-14, y=-10, z=9>
-<x=1, y=2, z=17>";
-    let data = file.split("\n").map(|str| Body::from(str)).collect::<Vec<Body>>();
+    let file = fs::read_to_string("./input.txt").expect("unable to download file");
+    let data = file.trim().split("\n").map(|str| Body::from(str)).collect::<Vec<Body>>();
 
     println!(
         "star 12-1: {}",
