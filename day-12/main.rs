@@ -68,12 +68,28 @@ fn calculate_energy (bodies: &Vec<Body>, n_steps: u64) -> u64 {
     state.iter().map(|body| body.get_total_energy()).sum()
 }
 
+fn calculate_steps (bodies: &Vec<Body>) -> u64 {
+    let mut state = bodies.to_vec();
+    let mut states = std::collections::HashSet::new();
+    let mut steps = 0;
+    println!("");
+    loop {
+        let hash = state.to_vec();
+        step(&mut state);
+        steps += 1;
+        println!("\x1B[1A{} steps", steps);
+        if states.contains(&hash) {
+            return steps
+        } else {
+            states.insert(hash);
+        }
+    }
+}
+
 fn main() {
     let file = fs::read_to_string("./input.txt").expect("unable to download file");
     let data = file.trim().split("\n").map(|str| Body::from(str)).collect::<Vec<Body>>();
 
-    println!(
-        "star 12-1: {}",
-        calculate_energy(&data, 1000)
-    )
+    println!("star 12-1: {}", calculate_energy(&data, 1000));
+    println!("star 12-2: {}", calculate_steps(&data));
 }
