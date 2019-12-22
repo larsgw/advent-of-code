@@ -2,8 +2,9 @@ use std::fs;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 struct Body {
-    position: (i64, i64, i64),
-    velocity: (i64, i64, i64)
+    x: (i64, i64),
+    y: (i64, i64),
+    z: (i64, i64)
 }
 
 impl From<&str> for Body {
@@ -13,23 +14,24 @@ impl From<&str> for Body {
         let y = pairs[1][2..].parse::<i64>().expect("cannot parse value");
         let z = pairs[2][2..].parse::<i64>().expect("cannot parse value");
         Body {
-            position: (x, y, z),
-            velocity: (0, 0, 0)
+            x: (x, 0),
+            y: (y, 0),
+            z: (z, 0)
         }
     }
 }
 
 impl Body {
     fn get_total_energy (self) -> u64 {
-        let pot = self.position.0.abs() + self.position.1.abs() + self.position.2.abs();
-        let kin = self.velocity.0.abs() + self.velocity.1.abs() + self.velocity.2.abs();
+        let pot = self.x.0.abs() + self.y.0.abs() + self.z.0.abs();
+        let kin = self.x.1.abs() + self.y.1.abs() + self.z.1.abs();
         (pot * kin) as u64
     }
 
     fn get_velocity_diff (&self, other: &Body) -> (i64, i64, i64) {
-        let x = (other.position.0 - self.position.0).signum();
-        let y = (other.position.1 - self.position.1).signum();
-        let z = (other.position.2 - self.position.2).signum();
+        let x = (other.x.0 - self.x.0).signum();
+        let y = (other.y.0 - self.y.0).signum();
+        let z = (other.z.0 - self.z.0).signum();
         (x, y, z)
     }
 }
@@ -41,17 +43,17 @@ fn step (bodies: &mut Vec<Body>) {
             if i != j {
                 let (x, y, z) = bodies[i].get_velocity_diff(&bodies[j]);
                 let body = &mut bodies[i];
-                body.velocity.0 += x;
-                body.velocity.1 += y;
-                body.velocity.2 += z;
+                body.x.1 += x;
+                body.y.1 += y;
+                body.z.1 += z;
             }
         }
     }
 
     for body in bodies {
-        body.position.0 += body.velocity.0;
-        body.position.1 += body.velocity.1;
-        body.position.2 += body.velocity.2;
+        body.x.0 += body.x.1;
+        body.y.0 += body.y.1;
+        body.z.0 += body.z.1;
     }
 }
 
@@ -68,20 +70,49 @@ fn calculate_energy (bodies: &Vec<Body>, n_steps: u64) -> u64 {
     state.iter().map(|body| body.get_total_energy()).sum()
 }
 
+fn gcd (a: u64, b: u64) -> u64 {
+    let mut a = a;
+    let mut b = b;
+    while b != 0 {
+        let t = b;
+        b = a % b;
+        a = t;
+    }
+    a
+}
+
+fn lcm (a: u64, b: u64) -> u64 {
+    (a * b) / gcd(a, b)
+}
+
 fn calculate_steps (bodies: &Vec<Body>) -> u64 {
+    let len = bodies.len();
     let mut state = bodies.to_vec();
-    let mut states = std::collections::HashSet::new();
-    let mut steps = 0;
+    let mut steps = (None, None, None);
+    let mut counter = 0;
     println!("");
+
     loop {
-        let hash = state.to_vec();
         step(&mut state);
-        steps += 1;
-        println!("\x1B[1A{} steps", steps);
-        if states.contains(&hash) {
-            return steps
-        } else {
-            states.insert(hash);
+        counter += 1;
+        println!("\x1B[1A{} steps", counter);
+
+        let mut same = (true, true, true);
+        for i in 0..len {
+            let a = state[i];
+            let b = bodies[i];
+            if a.x != b.x { same.0 = false; }
+            if a.y != b.y { same.1 = false; }
+            if a.z != b.z { same.2 = false; }
+        }
+
+        if steps.0.is_none() && same.0 { println!("\x1B[1Ax in {} steps\n", counter); steps.0 = Some(counter); }
+        if steps.1.is_none() && same.1 { println!("\x1B[1Ay in {} steps\n", counter); steps.1 = Some(counter); }
+        if steps.2.is_none() && same.2 { println!("\x1B[1Az in {} steps\n", counter); steps.2 = Some(counter); }
+
+        if steps.0.is_some() && steps.1.is_some() && steps.2.is_some() {
+            println!("\x1B[2A");
+            return lcm(lcm(steps.0.unwrap(), steps.1.unwrap()), steps.2.unwrap())
         }
     }
 }
