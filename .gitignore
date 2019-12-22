@@ -1,3 +1,6 @@
 /target
 /day-*/main
 /day-*/input.txt
+/src
+/packages
+/Cargo.*
