@@ -142,6 +142,7 @@ fn do_instruction (state: &mut ProgramState) -> Option<i64> {
     None
 }
 
+#[allow(dead_code)]
 pub fn step (state: &mut ProgramState) -> Option<i64> {
     let mut output = None;
     while output.is_none() && !state.is_done() {
@@ -150,6 +151,7 @@ pub fn step (state: &mut ProgramState) -> Option<i64> {
     output
 }
 
+#[allow(dead_code)]
 pub fn step_input (state: &mut ProgramState, input: Option<i64>) -> Vec<i64> {
     if input.is_some() { state.input.push(input.unwrap()); }
     let mut output = Vec::new();
@@ -162,6 +164,7 @@ pub fn step_input (state: &mut ProgramState, input: Option<i64>) -> Vec<i64> {
     output
 }
 
+#[allow(dead_code)]
 pub fn run (intcode: &Vec<i64>, input: &Vec<i64>) -> Vec<i64> {
     let mut output = Vec::new();
     let mut state = ProgramState {
